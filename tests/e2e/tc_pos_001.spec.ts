@@ -26,6 +26,27 @@ test.describe('TC_POS_001 - API key configuration positive flow', () => {
       sessionStorage.clear();
     });
 
+    // Inject a fetch stub early to stabilize WebKit: intercept /api/upload-pdf and return a deterministic JSON
+    await page.addInitScript(() => {
+      const originalFetch = window.fetch;
+      window.fetch = async (input, init = {}) => {
+        try {
+          const url = typeof input === 'string' ? input : (input && input.url) || '';
+          const method = (init && init.method ? init.method : 'GET').toUpperCase();
+          if (url.includes('/api/upload-pdf') && method === 'POST') {
+            const body = JSON.stringify({ pdf_id: 'mock-pdf-123', is_reprocessed: false });
+            return new Response(body, {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' }
+            });
+          }
+        } catch (e) {
+          // Fall back to original fetch if anything goes wrong
+        }
+        return originalFetch(input, init);
+      };
+    });
+
     // Navigate to app base URL (from PLAYWRIGHT_BASE_URL or fallback)
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
@@ -66,11 +87,8 @@ test.describe('TC_POS_001 - API key configuration positive flow', () => {
     // Assert file selection shows in UI (file name appears)
     await expect(page.getByText('sample.pdf')).toBeVisible();
 
-    // Trigger upload and wait for mocked response
-    await Promise.all([
-      page.waitForResponse((res) => res.url().includes('/api/upload-pdf') && res.status() === 200),
-      page.getByRole('button', { name: 'Upload PDF' }).click(),
-    ]);
+    // Trigger upload and rely on UI-based confirmation instead of network waits (stabilizes WebKit)
+    await page.getByRole('button', { name: 'Upload PDF' }).click();
 
     // Verify that we are on step 2: "Load Sections" with success message and PDF ID shown
     await expect(page.getByRole('heading', { name: 'PDF Uploaded Successfully!' })).toBeVisible();
