@@ -29,8 +29,8 @@ test.describe('TC_POS_001 - API key configuration positive flow', () => {
     // Verify API Configuration screen visible
     await expect(page.getByRole('heading', { name: 'API Configuration' })).toBeVisible();
 
-    // Fill API Key with 'abc' using the accessible label
-    await page.getByLabel('API Key').fill('abc');
+    // Fill API Key with 'abc' via placeholder (label is not programmatically associated)
+    await page.getByPlaceholder('Enter your API key').fill('abc');
 
     // Save API Key
     await page.getByRole('button', { name: 'Save API Key' }).click();
