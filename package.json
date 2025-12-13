@@ -10,7 +10,8 @@
     "test:e2e:url": "npx playwright test tests/e2e/app-accessibility.spec.ts",
     "test:e2e:headed": "npx playwright test --headed",
     "test:e2e:ui": "npx playwright test --ui",
-    "test:e2e:debug": "PWDEBUG=1 npx playwright test --debug"
+    "test:e2e:debug": "PWDEBUG=1 npx playwright test --debug",
+    "test:e2e:tc": "npx playwright test tests/e2e/tc_pos_001.spec.ts tests/e2e/tc_neg_001.spec.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.2",
