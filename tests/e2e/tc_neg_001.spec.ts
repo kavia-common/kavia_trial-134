@@ -1,152 +1,81 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * TC_NEG_001: Load Previous PDF (per Excel)
- * This test validates the "Load Previously Processed PDFs" flow using network mocks to avoid
- * external FastAPI dependency.
+ * TC_NEG_001: Load Previous PDF
  *
  * Steps:
- * - Precondition: Seed API key in localStorage before first navigation so the app bypasses API configuration.
- * - Mock routes:
- *   - GET **/api/processed-pdfs → returns a stable list with one item:
- *       { pdf_id: 'mock-prev-1', pdf_file: 'test-corpus.pdf', sections_count: 5, total_images: 3, processed_at: '2025-01-01T00:00:00Z' }
- *   - Optionally mock sections load for mock-prev-1 if UI auto-loads after selection.
- * - Navigate to app and open "Load Previously Processed PDFs" modal.
- * - Select the mocked item and assert success UI.
+ * 1) If needed, fill 'abc' in API key and proceed.
+ * 2) Check for 'Load Previous PDF' and click 'Load Previously Processed PDFs';
+ *    intercept and verify GET /api/processed-pdfs returns success; assert no failure messages are shown.
  *
- * Locator strategy:
- * - Prefer role-based locators via getByRole with accessible names.
+ * Notes:
+ * - Use exact, role-based locators aligned with the pdf-testcase-generator UI.
+ * - Replace any Unicode arrow (→) occurrences in comments with ASCII '->'.
  */
 
 test.describe('TC_NEG_001 - Load Previously Processed PDFs', () => {
-  test('loads a previously processed PDF and shows success UI', async ({ page }) => {
-    // Precondition: Seed API key so the app skips API Configuration gate.
-    await page.addInitScript(() => {
-      try {
-        localStorage.setItem('pdf_api_key', 'test-key');
-      } catch {}
-    });
-
-    // Early fetch stub to stabilize environments where app fetches immediately on load
-    await page.addInitScript(() => {
-      const originalFetch = window.fetch;
-      window.fetch = async (input, init: RequestInit = {}) => {
-        try {
-          const url = typeof input === 'string' ? input : (input && (input as Request).url) || '';
-          const method = ((init && init.method) || 'GET').toUpperCase();
-
-          // Mock: list of previously processed PDFs
-          if (url.includes('/api/processed-pdfs') && method === 'GET') {
-            const body = JSON.stringify([
-              {
-                pdf_id: 'mock-prev-1',
-                pdf_file: 'test-corpus.pdf',
-                sections_count: 5,
-                total_images: 3,
-                processed_at: '2025-01-01T00:00:00Z'
-              }
-            ]);
-            return new Response(body, {
-              status: 200,
-              headers: { 'Content-Type': 'application/json' }
-            });
-          }
-
-          // Optional: some UIs may auto-load sections after selection
-          if (url.includes('/api/sections/mock-prev-1') && method === 'GET') {
-            const body = JSON.stringify([
-              { section_id: 's1', title: 'Introduction', page_start: 1, page_end: 2 },
-              { section_id: 's2', title: 'Methods', page_start: 3, page_end: 5 }
-            ]);
-            return new Response(body, {
-              status: 200,
-              headers: { 'Content-Type': 'application/json' }
-            });
-          }
-
-          // Optional alternative: POST extract sections API
-          if (url.includes('/api/extract-sections/mock-prev-1') && method === 'POST') {
-            const body = JSON.stringify({
-              pdf_id: 'mock-prev-1',
-              sections: [{ section_id: 's1', title: 'Introduction', page_start: 1, page_end: 2 }]
-            });
-            return new Response(body, {
-              status: 200,
-              headers: { 'Content-Type': 'application/json' }
-            });
-          }
-        } catch {
-          // no-op and fall through to original fetch
-        }
-        return originalFetch(input as any, init);
-      };
-    });
-
-    // In addition to init-script stubs, add routing mocks to catch XHR/fetch done after hydration
-    await page.route('**/api/processed-pdfs', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          {
-            pdf_id: 'mock-prev-1',
-            pdf_file: 'test-corpus.pdf',
-            sections_count: 5,
-            total_images: 3,
-            processed_at: '2025-01-01T00:00:00Z'
-          }
-        ])
-      });
-    });
-    await page.route('**/api/sections/mock-prev-1', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          { section_id: 's1', title: 'Introduction', page_start: 1, page_end: 2 },
-          { section_id: 's2', title: 'Methods', page_start: 3, page_end: 5 }
-        ])
-      });
-    });
-
-    // Navigate to the frontend (baseURL from config or default). If this repo only hosts tests,
-    // this will target the provided running UI via PLAYWRIGHT_BASE_URL/REACT_APP_FRONTEND_URL.
+  test('conditionally seeds API key, loads previously processed PDFs and verifies success', async ({ page }) => {
+    // Navigate to the app base URL (configured in playwright.config.ts)
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    // Ensure we are on the main app and not API configuration
-    // App header should be visible if API key is accepted
-    await expect(page.getByRole('heading', { name: /PDF Test Case Generator/i })).toBeVisible({ timeout: 10_000 });
+    // Step 1 -> If needed, fill 'abc' in API key and proceed
+    // Check if API Configuration gate is visible; if so, seed API key and continue.
+    const apiConfigVisible = await page
+      .getByRole('heading', { name: 'API Configuration' })
+      .isVisible()
+      .catch(() => false);
 
-    // Open the "Load Previously Processed PDFs" modal
-    await page.getByRole('button', { name: /Load Previously Processed PDFs/i }).click();
+    if (apiConfigVisible) {
+      // Fill API key input (placeholder text is "Enter your API key" per app UI)
+      await page.getByPlaceholder('Enter your API key').fill('abc');
+      // Click Save API Key button
+      await page.getByRole('button', { name: 'Save API Key' }).click();
+      // Wait for main app heading to be visible indicating we have proceeded
+      await expect(
+        page.getByRole('heading', { name: 'PDF Test Case Generator' })
+      ).toBeVisible({ timeout: 15000 });
+    }
 
-    // Modal should show heading "Previously Processed PDFs"
-    await expect(page.getByRole('heading', { name: /Previously Processed PDFs/i })).toBeVisible();
+    // Ensure the main app is visible if API key was already present
+    await expect(
+      page.getByRole('heading', { name: 'PDF Test Case Generator' })
+    ).toBeVisible({ timeout: 15000 });
 
-    // The mocked item should appear - click the button or list item that includes the pdf file name
-    // Prefer role button with accessible name containing the file
-    const itemButton = page.getByRole('button', { name: /test-corpus\.pdf/i });
-    await expect(itemButton).toBeVisible();
-    await itemButton.click();
+    // Step 2 -> Check for 'Load Previous PDF' and click 'Load Previously Processed PDFs'
+    // Verify the presence of the "Load Previous PDF" text/option in the UI
+    await expect(page.getByText(/Load Previous PDF/i)).toBeVisible({ timeout: 10000 });
 
-    // After selection, the UI should confirm success in Step 2
-    await expect(page.getByRole('heading', { name: /PDF Loaded Successfully!/i })).toBeVisible({ timeout: 10_000 });
+    // Intercept GET /api/processed-pdfs and verify it returns success
+    // Prepare a promise to capture the request and response
+    const processedPdfsRequest = page.waitForRequest((req) => {
+      return req.method() === 'GET' && /\/api\/processed-pdfs(\?|$)/.test(req.url());
+    });
 
-    // The selected PDF ID should be present on the page (e.g., in Step 2 panel)
-    await expect(page.getByText(/mock-prev-1/i)).toBeVisible();
+    const processedPdfsResponse = page.waitForResponse((res) => {
+      return res.request().method() === 'GET' && /\/api\/processed-pdfs(\?|$)/.test(res.url());
+    });
 
-    // Either "Load Sections" button is visible, or step 3 UI appears if auto-loaded
-    const loadSectionsBtn = page.getByRole('button', { name: /Load Sections/i });
-    const step3Heading = page.getByRole('heading', { name: /Select a Section/i });
+    // Click the control to load previously processed PDFs (role-based locator)
+    await page.getByRole('button', { name: 'Load Previously Processed PDFs' }).click();
 
-    // Try to satisfy either condition
-    const loadSectionsVisible = await loadSectionsBtn.isVisible().catch(() => false);
-    const step3Visible = await step3Heading.isVisible().catch(() => false);
+    // Await the request and response then assert the response status is 2xx
+    const req = await processedPdfsRequest;
+    const res = await processedPdfsResponse;
+    const status = res.status();
+    expect(
+      status >= 200 && status < 300,
+      `Expected GET ${req.url()} to return 2xx, got ${status}`
+    ).toBeTruthy();
 
-    expect(loadSectionsVisible || step3Visible).toBeTruthy();
-
-    // Clean up routes
-    await page.unroute('**/api/processed-pdfs');
-    await page.unroute('**/api/sections/mock-prev-1');
+    // Assert no visible failure/error toasts or banners after the call.
+    // Common patterns: generic error banners, toast messages containing error keywords.
+    // Use soft assertions to not hide missing selectors as failures if they are absent.
+    await expect(page.getByText(/error|failed|failure|unable to/i)).not.toBeVisible({ timeout: 3000 });
+    // If the app uses an explicit alert role for errors, verify none are visible
+    const anyAlertVisible = await page
+      .getByRole('alert')
+      .isVisible()
+      .catch(() => false);
+    expect(anyAlertVisible).toBeFalsy();
   });
 });
