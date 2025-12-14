@@ -5,13 +5,16 @@ import { test, expect } from '@playwright/test';
 //
 /**
  * The default target URL for accessibility checks is taken from the environment.
- * Ensure SITE_URL is provided in the CI or local .env configuration.
+ * Falls back to a sensible local default when SITE_URL is missing, empty, or whitespace.
  */
-const DEFAULT_TARGET_URL = process.env.SITE_URL as string;
+const DEFAULT_TARGET_URL =
+  process.env.SITE_URL && process.env.SITE_URL.trim()
+    ? process.env.SITE_URL.trim()
+    : 'http://localhost:3000';
 
 test.describe('App accessibility (no-auth required)', () => {
   test('responds over HTTP and renders a visible page', async ({ page }) => {
-    // Use the default derived from SITE_URL; do not introduce external fallbacks.
+    // Use the derived URL with safe fallback to ensure page.goto always receives a valid string.
     const targetUrl = DEFAULT_TARGET_URL;
 
     // Navigate to the target and wait for initial DOM content
