@@ -1,16 +1,15 @@
 import { test, expect } from '@playwright/test';
+import dotenv from 'dotenv';
 
-// This spec verifies that the application at the provided URL is reachable without authentication
-// and renders a visible page with a non-empty title, running headless by default.
-//
+// Load environment variables from .env
+dotenv.config();
+
 /**
  * The default target URL for accessibility checks is taken from the environment.
  * Falls back to a sensible local default when SITE_URL is missing, empty, or whitespace.
  */
 const DEFAULT_TARGET_URL =
-  process.env.SITE_URL && process.env.SITE_URL.trim()
-    ? process.env.SITE_URL.trim()
-    : 'http://localhost:3000';
+  (process.env.SITE_URL && process.env.SITE_URL.trim()) || 'http://localhost:3000';
 
 test.describe('App accessibility (no-auth required)', () => {
   test('responds over HTTP and renders a visible page', async ({ page }) => {
