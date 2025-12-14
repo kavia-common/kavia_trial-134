@@ -3,14 +3,16 @@ import { test, expect } from '@playwright/test';
 // This spec verifies that the application at the provided URL is reachable without authentication
 // and renders a visible page with a non-empty title, running headless by default.
 //
-// You can override the target URL by setting the environment variable TARGET_URL.
-// Example:
-//   TARGET_URL=https://your-url.example.com npm run test:e2e:url
-const DEFAULT_TARGET_URL = 'https://vscode-internal-41499-beta.beta01.cloud.kavia.ai:3000/';
+/**
+ * The default target URL for accessibility checks is taken from the environment.
+ * Ensure SITE_URL is provided in the CI or local .env configuration.
+ */
+const DEFAULT_TARGET_URL = process.env.SITE_URL as string;
 
 test.describe('App accessibility (no-auth required)', () => {
   test('responds over HTTP and renders a visible page', async ({ page }) => {
-    const targetUrl = process.env.TARGET_URL || DEFAULT_TARGET_URL;
+    // Use the default derived from SITE_URL; do not introduce external fallbacks.
+    const targetUrl = DEFAULT_TARGET_URL;
 
     // Navigate to the target and wait for initial DOM content
     const response = await page.goto(targetUrl, {
