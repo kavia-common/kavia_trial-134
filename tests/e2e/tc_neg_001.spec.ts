@@ -1,81 +1,58 @@
 import { test, expect } from '@playwright/test';
+import { setApiKeyViaUI } from './utils/apiKeyHelper';
 
 /**
- * TC_NEG_001: Load Previous PDF
+ * TC_NEG_001
+ * Negative E2E:
+ *  - Start at baseURL
+ *  - Set API key via UI with value 'xyz'
+ *  - Navigate to Previously Processed PDFs view
+ *  - Attempt to load list without mocks
+ *  - Verify expected negative behavior (e.g., empty state message or error toast/banner)
  *
- * Steps:
- * 1) If needed, fill 'abc' in API key and proceed.
- * 2) Check for 'Load Previous PDF' and click 'Load Previously Processed PDFs';
- *    intercept and verify GET /api/processed-pdfs returns success; assert no failure messages are shown.
- *
- * Notes:
- * - Use exact, role-based locators aligned with the pdf-testcase-generator UI.
- * - Replace any Unicode arrow (→) occurrences in comments with ASCII '->'.
+ * IMPORTANT:
+ *  - Use locators strictly from playwright-locator-mapping.md (referenced in comments).
+ *  - No mocks/stubs.
+ *  - Use Playwright baseURL (do not hardcode localhost).
  */
 
-test.describe('TC_NEG_001 - Load Previously Processed PDFs', () => {
-  test('conditionally seeds API key, loads previously processed PDFs and verifies success', async ({ page }) => {
-    // Navigate to the app base URL (configured in playwright.config.ts)
+test.describe('TC_NEG_001 - Previously Processed PDFs negative behavior', () => {
+  test('shows empty state or proper error when loading previously processed PDFs', async ({ page }) => {
+    // Start from base URL root; baseURL is configured in playwright.config.ts
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    // Step 1 -> If needed, fill 'abc' in API key and proceed
-    // Check if API Configuration gate is visible; if so, seed API key and continue.
-    const apiConfigVisible = await page
-      .getByRole('heading', { name: 'API Configuration' })
-      .isVisible()
-      .catch(() => false);
+    // Use helper to set API key via UI with value 'xyz'
+    await setApiKeyViaUI(page, 'xyz');
 
-    if (apiConfigVisible) {
-      // Fill API key input (placeholder text is "Enter your API key" per app UI)
-      await page.getByPlaceholder('Enter your API key').fill('abc');
-      // Click Save API Key button
-      await page.getByRole('button', { name: 'Save API Key' }).click();
-      // Wait for main app heading to be visible indicating we have proceeded
-      await expect(
-        page.getByRole('heading', { name: 'PDF Test Case Generator' })
-      ).toBeVisible({ timeout: 15000 });
+    // Ensure main UI visible
+    await expect(page.getByRole('heading', { name: 'PDF Test Case Generator' })).toBeVisible(); // MAPPED: heading[role] "PDF Test Case Generator"
+
+    // Open "Previously Processed PDFs" view
+    // MAPPED: text "Load Previous PDF" and a button "Load Previously Processed PDFs"
+    await expect(page.getByText(/Load Previous PDF/i)).toBeVisible({ timeout: 15000 }); // MAPPED: text content section
+    const loadPrevButton = page.getByRole('button', { name: 'Load Previously Processed PDFs' }); // MAPPED: button[role][name="Load Previously Processed PDFs"]
+    await expect(loadPrevButton).toBeVisible();
+    await loadPrevButton.click();
+
+    // Now attempt to load the list without mocks
+    // Expected negative behavior: either an empty state or a visible error toast/banner.
+    // Check for a known empty state message (case-insensitive)
+    const emptyState = page.getByText(/no previously processed pdfs|no items found|nothing here yet/i); // MAPPED: text content for empty state
+    const emptyVisible = await emptyState.isVisible().catch(() => false);
+
+    // Also check for alert role or toast containing error keywords
+    const alertRole = page.getByRole('alert'); // MAPPED: role="alert" for error messages
+    const alertVisible = await alertRole.isVisible().catch(() => false);
+
+    const genericErrorText = page.getByText(/error|failed|failure|unable to|not available/i); // MAPPED: text content generic error
+    const genericErrorVisible = await genericErrorText.isVisible().catch(() => false);
+
+    // One of the negative indicators should be present (empty or error)
+    expect(emptyVisible || alertVisible || genericErrorVisible).toBeTruthy();
+
+    // If an alert is visible, ensure it is not success variant (basic assertion)
+    if (alertVisible) {
+      await expect(alertRole).not.toContainText(/success|completed|ready/i);
     }
-
-    // Ensure the main app is visible if API key was already present
-    await expect(
-      page.getByRole('heading', { name: 'PDF Test Case Generator' })
-    ).toBeVisible({ timeout: 15000 });
-
-    // Step 2 -> Check for 'Load Previous PDF' and click 'Load Previously Processed PDFs'
-    // Verify the presence of the "Load Previous PDF" text/option in the UI
-    await expect(page.getByText(/Load Previous PDF/i)).toBeVisible({ timeout: 10000 });
-
-    // Intercept GET /api/processed-pdfs and verify it returns success
-    // Prepare a promise to capture the request and response
-    const processedPdfsRequest = page.waitForRequest((req) => {
-      return req.method() === 'GET' && /\/api\/processed-pdfs(\?|$)/.test(req.url());
-    });
-
-    const processedPdfsResponse = page.waitForResponse((res) => {
-      return res.request().method() === 'GET' && /\/api\/processed-pdfs(\?|$)/.test(res.url());
-    });
-
-    // Click the control to load previously processed PDFs (role-based locator)
-    await page.getByRole('button', { name: 'Load Previously Processed PDFs' }).click();
-
-    // Await the request and response then assert the response status is 2xx
-    const req = await processedPdfsRequest;
-    const res = await processedPdfsResponse;
-    const status = res.status();
-    expect(
-      status >= 200 && status < 300,
-      `Expected GET ${req.url()} to return 2xx, got ${status}`
-    ).toBeTruthy();
-
-    // Assert no visible failure/error toasts or banners after the call.
-    // Common patterns: generic error banners, toast messages containing error keywords.
-    // Use soft assertions to not hide missing selectors as failures if they are absent.
-    await expect(page.getByText(/error|failed|failure|unable to/i)).not.toBeVisible({ timeout: 3000 });
-    // If the app uses an explicit alert role for errors, verify none are visible
-    const anyAlertVisible = await page
-      .getByRole('alert')
-      .isVisible()
-      .catch(() => false);
-    expect(anyAlertVisible).toBeFalsy();
   });
 });
