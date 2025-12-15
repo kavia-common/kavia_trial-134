@@ -156,3 +156,27 @@
 2025-12-15 09:21:03,432 - Knowledge - INFO - ⚡ Total Redis path: 0.85s (vs ~300s from disk)
 2025-12-15 09:21:03,644 - Knowledge - INFO - Saving knowledge to Redis...
 2025-12-15 09:21:03,818 - Knowledge - INFO - Knowledge saved to Redis successfully
+2025-12-15 10:13:34,046 - Knowledge - INFO - Created shared MongoDB connection pool
+2025-12-15 10:13:34,420 - Knowledge - INFO - Starting Knowledge Graph processing with 20 threads
+2025-12-15 10:13:34,621 - Knowledge - INFO - Initial configuration: chunk_size=65536, max_cache_size=500
+2025-12-15 10:13:34,814 - Knowledge - INFO - Knowledge Graph concurrency configuration: workers=20, max_batch_size=25, max_concurrent_llm_calls=50
+2025-12-15 10:13:35,764 - Knowledge - INFO - 🔍 _load_persisted_knowledge called - checking for Redis optimization
+2025-12-15 10:13:35,937 - Knowledge - WARNING - ❌ load_from_redis method not found - Redis support not attached
+2025-12-15 10:13:36,140 - Knowledge - INFO - load persisted knowledge: begin
+2025-12-15 10:13:36,314 - Knowledge - INFO - Loaded 0 files from persisted knowledge
+2025-12-15 10:13:36,507 - Knowledge - INFO - load persisted knowledge: end
+2025-12-15 10:13:36,711 - Knowledge - WARNING - No persisted knowledge found. Files will be queued during start()
+2025-12-15 10:13:36,891 - Knowledge - INFO - Redis support added with prefix knowledge:b63987w:
+2025-12-15 10:13:37,059 - Knowledge - INFO - Starting knowledge initialization for ID: YJiTS4-b63987w
+2025-12-15 10:13:37,234 - Knowledge - INFO - 🔍 Checking Redis for build_id: b63987w
+2025-12-15 10:13:37,386 - Knowledge - INFO - 🔍 Full session ID: YJiTS4-b63987w
+2025-12-15 10:13:37,550 - Knowledge - INFO - 🔍 Redis prefix will be: knowledge:b63987w:
+2025-12-15 10:13:37,743 - Knowledge - INFO - 🔍 Using attached load_from_redis() method
+2025-12-15 10:13:37,932 - Knowledge - INFO - 🔍 Attempting to load knowledge from Redis...
+2025-12-15 10:13:38,135 - Knowledge - INFO - 🔍 Using derived instance_id for Redis lookup: b63987w
+2025-12-15 10:13:38,320 - Knowledge - INFO - ✅ Redis cache found! Loading knowledge...
+2025-12-15 10:13:38,518 - Knowledge - INFO - ✅ Successfully loaded from Redis: 0 files
+2025-12-15 10:13:38,705 - Knowledge - INFO - ✅ Redis load complete: 0 files in 0.96s
+2025-12-15 10:13:38,865 - Knowledge - INFO - ⚡ Total Redis path: 0.96s (vs ~300s from disk)
+2025-12-15 10:13:39,102 - Knowledge - INFO - Saving knowledge to Redis...
+2025-12-15 10:13:39,321 - Knowledge - INFO - Knowledge saved to Redis successfully
