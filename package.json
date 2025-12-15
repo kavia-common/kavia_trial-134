@@ -11,14 +11,25 @@
     "test:e2e:headed": "npx playwright test --headed",
     "test:e2e:ui": "npx playwright test --ui",
     "test:e2e:debug": "PWDEBUG=1 npx playwright test --debug",
-    "test:e2e:tc": "npx playwright test tests/e2e/tc_pos_001.spec.ts tests/e2e/tc_neg_001.spec.ts"
+    "test:e2e:tc": "npx playwright test tests/e2e/tc_pos_001.spec.ts tests/e2e/tc_neg_001.spec.ts",
+    "lint": "eslint \"**/*.{js,ts}\" --max-warnings=0 || true",
+    "lint:fix": "eslint \"**/*.{js,ts}\" --fix || true",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@playwright/test": "^1.48.2",
     "playwright": "^1.48.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3",
-    "dotenv": "^16 || ^17"
+    "dotenv": "^16 || ^17",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.30.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "prettier": "^3.3.3"
   },
   "dependencies": {
   }
